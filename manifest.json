@@ -1,0 +1,15 @@
+{
+    "display_name": "Payload Defense — 注入防御",
+    "plugin_id": "kira-ai-plugin-payload-defense",
+    "version": "1.0.0",
+    "author": "znq19",
+    "description": "LLM 注入攻击防御插件。在消息交给 LLM 之前扫描并清洗伪造的系统字段（如 QQ 消息包格式、JSON 注入等），命中后替换为拦截警告或丢弃。支持 warn/strict 双模式。",
+    "repo": "https://github.com/znq19/kira-ai-plugin-payload-defense",
+    "tags": ["defense", "security", "injection", "防火墙", "防越狱"],
+    "locales": {
+        "zh": {
+            "display_name": "Payload Defense — 注入防御",
+            "description": "防御注入攻击：在消息交给 LLM 之前扫描并替换/丢弃包含伪造系统字段的消息。"
+        }
+    }
+}

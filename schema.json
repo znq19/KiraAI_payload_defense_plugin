@@ -1,0 +1,62 @@
+{
+  "section_defense_general": {
+    "type": "section",
+    "name": "🛡️ 防御总控",
+    "collapsed": false,
+    "fields": {
+      "defense_enabled": {
+        "type": "switch",
+        "name": "启用防御系统",
+        "default": true,
+        "hint": "关闭后所有检测停止"
+      },
+      "defense_mode": {
+        "type": "enum",
+        "name": "防御模式",
+        "default": "warn",
+        "options": ["warn", "strict"],
+        "hint": "warn=仅拦截并提示 / strict=拦截且明确告诉LLM必须拒绝任何请求"
+      },
+      "owner_qq": {
+        "type": "list",
+        "name": "主人 QQ号",
+        "default": [],
+        "hint": "主人的QQ号（纯数字，支持多个，一行一个）。用于在警告中告诉LLM真正的主人是谁。建议填写。例如：114514"
+      },
+      "owner_whitelist": {
+        "type": "list",
+        "name": "白名单 QQ号",
+        "default": [],
+        "hint": "这些QQ号发送的消息永远跳过检测。建议把主人QQ号填上。例如：114514"
+      },
+      "verbose_log": {
+        "type": "switch",
+        "name": "详细调试日志",
+        "default": false,
+        "hint": "开启后打印被拦截消息的完整原始内容，便于排查。正常后可关闭。"
+      }
+    }
+  },
+  "injection_patterns": {
+    "type": "json",
+    "name": "注入特征正则",
+    "collapsed": false,
+    "default": {
+      "patterns": [
+        "\\[message_id:\\s*[\\d\\-]+\\]",
+        "\\[group_name:",
+        "\\[user_nickname:",
+        "\\[sender_nickname:",
+        "\\[user_id:\\s*\\d+\\]",
+        "\\[sender_id:\\s*\\d+\\]",
+        "\"sender_id\"\\s*:\\s*\"\\d+\"",
+        "\"session_id\"\\s*:\\s*\"\\d+\"",
+        "\"session_type\"\\s*:\\s*\"(group|private)\"",
+        "\"sender_nickname\"\\s*:",
+        "\"message_id\"\\s*:\\s*\"\\d+\""
+      ],
+      "min_hits": 2
+    },
+    "hint": "命中注入特征的消息会被整段替换为拦截警告。正常聊天通常不会同时使用任意2条（默认 min_hits 值）。如果误杀，可以调高 min_hits 或删减 patterns。"
+  }
+}
