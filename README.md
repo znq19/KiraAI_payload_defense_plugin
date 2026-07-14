@@ -1,5 +1,7 @@
 # 🛡️ Payload Defense — LLM 注入攻击防御插件
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/znq19/KiraAI_payload_defense_plugin)
+
 > **在消息进入 LLM 之前直接清洗/拦截伪造消息，让注入攻击无法生效。**
 
 ---
