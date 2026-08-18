@@ -194,44 +194,19 @@ payload-defense/
 
 ---
 
-## 📄 许可
+## 🆕 更新日志
 
-**AGPL v3.0 License**
+### v1.1.1（2026-08-19）
+
+**修复：整链替换时保留媒体元素（Image/Sticker/Record/File/Video）**
+
+- 此前 `annotate` / `warn` 模式命中注入时，`event.message.chain` 会被整体替换为纯文本 `MessageChain`，同消息内的图片、表情、语音、文件等媒体元素会被连带删除
+- 在 KiraAI 原生多模态（native）模式下，图片由框架在 LLM 请求阶段实时直传（`[Image attached]`）；整链替换会使其失效，vlm 模式下的图片描述同样丢失
+- 本次改动：替换时遍历原链，仅替换 `Text` 部分，保留所有媒体元素（保持原始相对顺序）；纯文本消息行为与旧版完全一致
+- 同步更新了 `im_message` 与 `llm_request` 兜底两处链替换逻辑
 
 ---
 
-<details>
-<summary>📝 更新日志</summary>
+## 📄 许可
 
-### v1.1.0 (2026-07)
-
-**新增：**
-- 新增 `annotate` 防御模式：标注外壳 + 剥离意图，设为默认推荐模式
-- 双层防护机制：新增 `@on.llm_request(HIGH)` 钩子作为兜底，确保注入消息在 LLM 请求前也被拦截
-- 意图提取功能：syslog 格式取 `|` 后内容，JSON 格式解析 `content` 字段
-- System prompt 注入：根据防御状态向 LLM 注入短提示（`SYS_ANNOTATE` / `SYS_WARN` / `SYS_FALLBACK`），指导 LLM 正确处理
-- 注入类型检测（`_detect_kind`）：自动识别 `syslog` / `json` / `unknown`
-- 外壳摘要（`_shell_summary`）：原始消息截断至 120 字符
-- 已标注标记（`_MARK_ANNOTATE` / `_MARK_WARN`）：防止重复处理
-- 批量事件 QQ 提取（`_sender_qq_from_batch`）：支持 `KiraMessageBatchEvent`
-- `req.messages` 直接改写兜底（`_rewrite_last_user_in_req`）
-- `req.user_prompt` 中 message 段同步改写
-
-**改进：**
-- `min_hits` 默认值由旧版 2 上调为 3，进一步降低误杀
-- 日志输出更详细：区分模式、注入类型、意图摘要
-- `strict` 模式增加异常时的 fallback 日志
-
-**修复：**
-- 修复 sender QQ 提取逻辑：优先从 `event.message.sender` 获取
-
-### v1.0.0
-
-- 初始版本
-- 支持 `warn` 和 `strict` 两种防御模式
-- 11 条默认正则覆盖 syslog 和 JSON 注入特征
-- 白名单 / 主人 QQ 配置
-- 详细日志开关
-- WebUI 一键安装
-
-</details>
+**AGPL v3.0 License**
