@@ -21,7 +21,7 @@ from core.plugin import BasePlugin, on, Priority
 from core.provider import LLMRequest
 from core.chat import MessageChain
 from core.chat.message_utils import KiraMessageBatchEvent, KiraMessageEvent
-from core.chat.message_elements import Text
+from core.chat.message_elements import Text, Image, Sticker, Record, File, Video
 from core.prompt_manager import Prompt
 from core.logging_manager import get_logger
 
@@ -291,9 +291,35 @@ class PayloadDefensePlugin(BasePlugin):
 
     # ── im_message ───────────────────────────────────────────────
 
+    @staticmethod
+    def _chain_media(chain) -> list:
+        """收集链上的媒体元素（图片/表情/语音/文件/视频），整链替换时保留。
+
+        原生多模态模式下，图片由框架在 LLM 请求阶段实时直传（[Image attached]），
+        若整链替换为纯文本会把同消息里的媒体元素连带删掉，导致 native 模式
+        图片直传失效、vlm 模式图片描述丢失。这里只收集、不改动原链。
+        """
+        if chain is None:
+            return []
+        media = []
+        try:
+            for elem in chain:
+                if isinstance(elem, (Image, Sticker, Record, File, Video)):
+                    media.append(elem)
+        except Exception:
+            return []
+        return media
+
+    def _build_chain(self, new_text: str, media: list) -> MessageChain:
+        """用替换文本 + 保留的媒体元素构造新链。媒体为空时退化为纯文本链，行为与旧版一致。"""
+        elements: list = [Text(new_text)]
+        elements.extend(media)
+        return MessageChain(elements)
+
     def _apply_chain(self, event: KiraMessageEvent, new_text: str) -> bool:
         try:
-            event.message.chain = MessageChain([Text(new_text)])
+            media = self._chain_media(getattr(event.message, "chain", None))
+            event.message.chain = self._build_chain(new_text, media)
             return True
         except Exception as e:
             self._vlog(f"assign chain failed: {e}")
@@ -437,13 +463,14 @@ class PayloadDefensePlugin(BasePlugin):
 
         if self._mode == "annotate":
             annotated = self._build_annotate_user(text, hits)
-            # 改 batch message_str + chain，供 assemble 使用
+            # 改 batch message_str + chain，供 assemble 使用（保留媒体元素，不丢图片）
             try:
                 if event and event.messages:
                     last = event.messages[-1]
                     last.message_str = annotated
                     if getattr(last, "chain", None) is not None:
-                        last.chain = MessageChain([Text(annotated)])
+                        media = self._chain_media(last.chain)
+                        last.chain = self._build_chain(annotated, media)
             except Exception as e:
                 self._vlog(f"batch rewrite failed: {e}")
             self._rewrite_last_user_in_req(req, annotated)
@@ -464,7 +491,9 @@ class PayloadDefensePlugin(BasePlugin):
                 if event and event.messages:
                     last = event.messages[-1]
                     last.message_str = WARN_REPLACE
-                    last.chain = MessageChain([Text(WARN_REPLACE)])
+                    if getattr(last, "chain", None) is not None:
+                        media = self._chain_media(last.chain)
+                        last.chain = self._build_chain(WARN_REPLACE, media)
             except Exception:
                 pass
             self._rewrite_last_user_in_req(req, WARN_REPLACE)
