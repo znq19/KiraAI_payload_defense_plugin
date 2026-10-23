@@ -10,28 +10,39 @@
         "default": true
       },
       "defense_mode": {
-        "type": "enum",
+        "type": "string",
         "name": "防御模式",
         "default": "annotate",
-        "options": ["annotate", "warn", "strict"],
-        "hint": "annotate=标注外壳+剥离意图(推荐，省token且能看见内容) / warn=整段替换为拦截提示 / strict=直接丢弃"
+        "options": [
+          "annotate",
+          "warn",
+          "strict"
+        ],
+        "hint": "annotate=标注外壳+剥离意图（推荐，保留内容、不误杀）/ warn=整段替换为拦截提示 / strict=直接丢弃"
       },
       "owner_qq": {
         "type": "list",
         "name": "主人QQ",
         "default": [],
-        "hint": "仅用于日志/说明，一行一个"
+        "hint": "仅用于日志标注（owner=Y/N），一行一个；不影响拦截判定"
       },
       "owner_whitelist": {
         "type": "list",
         "name": "白名单QQ",
         "default": [],
-        "hint": "这些QQ跳过检测。测试注入时请勿把自己放进白名单"
+        "hint": "这些QQ的消息跳过检测。测试注入时请勿把自己放进白名单"
       },
       "verbose_log": {
         "type": "switch",
         "name": "详细日志",
-        "default": false
+        "default": false,
+        "hint": "开启后额外输出命中预览与内部判断细节"
+      },
+      "batch_aggregate": {
+        "type": "switch",
+        "name": "跨消息合并判定",
+        "default": false,
+        "hint": "把同一发送者在同一批次内的多条消息合并计数，用于防「拆成几条各带一个字段」的绕过。默认关闭：跨消息计数更容易误判，需要时再开。"
       }
     }
   },
@@ -52,8 +63,15 @@
         "\"sender_nickname\"\\s*:",
         "\"message_id\"\\s*:"
       ],
-      "min_hits": 3
+      "min_hits": 3,
+      "strong_patterns": [
+        "^[ \\t]*(?:\\[[^\\]\\n]{1,40}\\][ \\t]*)?\\[message_id[:：][^\\]\\n]{1,64}\\][ \\t]*\\[(?:group_name|user_nickname|sender_nickname|sender_id)[:：][^\\]\\n]{0,160}\\]",
+        "\\[message_id[:：][^\\]\\n]{1,64}\\][ \\t]*\\[(?:group_name|user_nickname|sender_nickname|sender_id)[:：][^\\]\\n]{0,160}\\][ \\t]*\\|",
+        "^[ \\t]*(?:\\[[^\\]\\n]{1,40}\\][ \\t]*)?\\[(?:group_name|user_nickname|sender_nickname)[:：][^\\]\\n]{0,160}\\buser_id[:：][ \\t]*[^\\]\\n]{1,64}\\]",
+        "\\[(?:group_name|user_nickname|sender_nickname)[:：][^\\]\\n]{0,160}\\buser_id[:：][ \\t]*[^\\]\\n]{1,64}\\][ \\t]*\\|"
+      ],
+      "json_envelope": true
     },
-    "hint": "min_hits 建议 3，降低误杀。"
+    "hint": "patterns+min_hits 为弱特征计数（默认 3 条，宁漏勿误杀）；strong_patterns 为结构判定，命中任意一条即拦截（覆盖框架真实消息头，等价于「2 个字段即可判定」）。把 strong_patterns 设为 [] 可关闭结构判定。"
   }
 }
